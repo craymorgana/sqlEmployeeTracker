@@ -161,32 +161,71 @@ async function addRole() {
 	);
 }
 
-const addEmployee = () => {
-	return new Promise(() => {
-		inquirer
-			.prompt([
-				{
-					type: "input",
-					name: "firstName",
-					message: "What is the first name of the new employee?",
-				},
-				{
-					type: "input",
-					name: "lastName",
-					message: "What is the first name of the new employee?",
-				},
-				{
-					type: "input",
-					name: "firstName",
-					message: "What is the first name of the new employee?",
-				},
-			])
-			.then((answer) => {
-				db.query(`INSERT INTO employee (name) VALUES ("${answer.new}")`);
-				console.log(`${answer.new} department has been added.`);
-			});
-	});
+const employeeName = () => {
+	return [
+		{
+			type: "input",
+			name: "firstName",
+			message: "What is the employee's first name?"
+		},
+		{
+			type: "input",
+			name: "lastName",
+			message: "What is the employee's last name?"
+		}
+	];
 };
+
+async function addEmployee() {
+	const newEmployeeName = await inquirer.prompt(employeeName());
+	db.query(`SELECT role.id, role.title FROM role;`, async (err, res) => {
+		if (err) console.log(err);
+		const { role } = await inquirer.prompt([
+			{
+				name: "role",
+				type: "list",
+				choices: () => res.map((res) => res.title),
+				message: "Which role does the employee belong to?",
+			},
+		]);
+		let employeeId;
+		for (const row of res) {
+			if (row.title === role) {
+				employeeId = row.id;
+				continue;
+			}
+		}
+		// db.query(`SELECT * FROM employee`, async (err, res) => {
+		// 	if (err) console.log(err);
+		// 	console.log(res);
+		// 	let managerList = res.map(res => `${res.first_name} ${res.last_name}`)
+		// 	managerList.push(null)
+		// 	const { manager } = await inquirer.prompt([
+		// 		{
+		// 			name: "manager",
+		// 			type: "list",
+		// 			choices: managerList,
+		// 			message: "Which role does the employee belong to?",
+		// 		},
+		// 	]);
+		// });
+		db.query(
+			`INSERT INTO employee SET ?`,
+			{
+				first_name: newEmployeeName.firstName,
+				last_name: newEmployeeName.lastName,
+				role_id: employeeId,
+			},
+			(err, res) => {
+				if (err) console.log(err);
+				console.log(
+					`\n${newEmployeeName.firstName} ${newEmployeeName.lastName} has been added.\n`
+				);
+				initApp();
+			}
+		);
+	});
+}
 initApp();
 
 module.exports = initApp;
